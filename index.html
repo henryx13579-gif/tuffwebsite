@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0d0d0d;
+            color: #ffffff;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        /* Clicker Image Container & Click Animation */
+        .clicker-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.05s ease-out;
+            will-change: transform;
+        }
+
+        .clicker-btn:active,
+        .clicker-btn.clicked {
+            transform: scale(0.92);
+        }
+
+        .clicker-img {
+            max-height: 80vh;
+            max-width: 85vw;
+            object-fit: contain;
+            border-radius: 12px;
+            display: block;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+         1. AUDIO SOURCE (Change the file path in 'src' below)
+         ============================================================ -->
+    <audio id="click-sound" src="https://www.myinstants.com/media/sounds/neegyy.mp3" preload="auto"></audio>
+
+    <!-- ============================================================
+         2. CLICKABLE IMAGE (Change the image file path in 'src' below)
+         ============================================================ -->
+    <button id="clicker-btn" class="clicker-btn">
+        <img 
+            id="clicker-img" 
+            src="https://unl.one/2tRnu.png" 
+            alt="Clickable Character" 
+            class="clicker-img"
+            onerror="this.onerror=null; this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFd9h-ksi_JBYxttnJa5Cjmpim025Iu7dsZ0WxumJntHFQ5OMO9d24XmM&s=10';"
+        />
+    </button>
+
+    <script>
+        const clickerBtn = document.getElementById('clicker-btn');
+        const audioTag = document.getElementById('click-sound');
+
+        // Low-latency Web Audio API Synth Fallback (synthesizes sound if MP3 fails/loads slow)
+        let audioCtx = null;
+
+        function playSynthHit() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        // Trigger Play Sound
+        function playSound() {
+            if (audioTag && audioTag.src && audioTag.readyState >= 1) {
+                const soundInstance = audioTag.cloneNode();
+                soundInstance.currentTime = 0;
+                soundInstance.play().catch(() => playSynthHit());
+            } else {
+                playSynthHit();
+            }
+        }
+
+        // Handle Click / Tap
+        function handleClick(e) {
+            playSound();
+
+            // Quick press feedback
+            clickerBtn.classList.add('clicked');
+            setTimeout(() => clickerBtn.classList.remove('clicked'), 80);
+        }
+
+        clickerBtn.addEventListener('click', handleClick);
+
+        // Keyboard press support (Spacebar / Enter)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                handleClick();
+            }
+        });
+    </script>
+</body>
+</html>
